@@ -10,8 +10,7 @@
 > [Hi-SAM: Marrying Segment Anything Model for Hierarchical Text Segmentation](https://arxiv.org/abs/2401.17904).
 >
 >  [IEEE TPAMI]
-
-This is the official repository for Hi-SAM, a unified hierarchical text segmentation model. Refer to our paper for more details.
+This was copied from https://github.com/ymy-k/Hi-SAM which is the official repository for Hi-SAM, a unified hierarchical text segmentation model. Refer to our paper for more details.
 
 
 ## :fire: News
