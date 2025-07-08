@@ -1,0 +1,48 @@
+python demo_hisam.py --checkpoint pretrained_checkpoint/sam_tss_l_hiertext.pth --model-type vit_l --input demo/2e0cb33320757201.jpg --output demo/
+
+
+python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_l.pth --model-type vit_l --input demo/2e0cb33320757201.jpg --output out/ --hier_det
+
+python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_l.pth --model-type vit_l --input demo/2e0cb33320757201.jpg --output out/segment_img2e_hier_det.png --hier_det
+
+python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_l.pth --model-type vit_l --input out/segment_img2e_sliding_inv.png --output out/segment_img2e_bw_hier_det.png --hier_det
+
+
+
+python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_l.pth --model-type vit_l --input demo/0520-020.png --output out/ --hier_det
+
+
+python demo_hisam.py --checkpoint pretrained_checkpoint/sam_tss_l_totaltext.pth --model-type vit_l --input demo/065.jpg --output out/065_hi_2.png --hier_det
+
+
+python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_h.pth --model-type vit_h --input demo/065.jpg --output out/065_hi_3.png --hier_det
+
+
+
+python demo_text_detection.py --checkpoint pretrained_checkpoint/word_detection_totaltext.pth --model-type vit_h --input demo/img643.jpg --output out/ --dataset totaltext
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/img643.jpg --output out/img643_line.png --dataset totaltext
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/img643.jpg --output out/img643_line_ctw.png --dataset ctw1500
+
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/065.jpg --output out/065_line_ctw.png --dataset ctw1500
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/065.jpg --output out/065_line_totl.png --dataset totaltext
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/019.jpg --output out/019_line_ctw.png --dataset ctw1500
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/019.jpg --output out/019_line_totl.png --dataset totaltext
+
+python demo_text_detection.py --checkpoint pretrained_checkpoint/word_detection_totaltext.pth --model-type vit_h --input demo/019.jpg --output out/019_word_totl.png --dataset totaltext
+python demo_text_detection.py --checkpoint pretrained_checkpoint/word_detection_totaltext.pth --model-type vit_h --input demo/065.jpg --output out/065_word_totl.png --dataset totaltext
+
+python demo_text_detection.py --checkpoint pretrained_checkpoint/word_detection_totaltext.pth --model-type vit_h --input demo/065.jpg --output out/065_word_ctw.png --dataset ctw1500
+
+
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/065.jpg --output out/065_line_ctw2.png --dataset ctw1500 --seed 20
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/065.jpg --output out/065_line_ctw2.png --dataset ctw1500 --seed 20
+
+
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/ara_0.jpg --output out/ara_0_line.png --dataset ctw1500
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/ara_1.png --output out/ara_1_line.png --dataset ctw1500 --seed 20
+
+python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_h.pth --model-type vit_h --input demo/ara_1.png --output out/ara_1_bin.png --patch_mode --input_size [2048,2048]
+
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/AGS_CCA_CED_0251_0264.jpg --output out/AGS_CCA_CED_0251_0264_line2.png --dataset ctw1500 --seed 20
+
+python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_h.pth --model-type vit_h --input demo/AGS_CCA_CED_0251_0264.jpg --output out/AGS_CCA_CED_0251_0264_bin.png --patch_mode 

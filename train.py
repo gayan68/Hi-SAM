@@ -239,7 +239,29 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
                             "loss_para": loss_para * 0.5
                         }
                     else:
-                        raise NotImplementedError
+                        loss_focal_line, loss_dice_line = loss_hi_masks(
+                            hi_masks_logits[:, 1:2, :, :], line_masks, len(hi_masks_logits)
+                        )
+                        loss_mse_line = loss_hi_iou_mse(
+                            hi_iou_output[:, 1:2], hi_masks_logits[:, 1:2, :, :], model.module.mask_threshold, line_masks
+                        )
+                        loss_line = loss_focal_line + loss_dice_line + loss_mse_line
+
+                        loss_focal_para, loss_dice_para = loss_hi_masks(
+                            hi_masks_logits[:, 2:3, :, :], para_masks, len(hi_masks_logits)
+                        )
+                        loss_mse_para = loss_hi_iou_mse(
+                            hi_iou_output[:, 2:3], hi_masks_logits[:, 2:3, :, :], model.module.mask_threshold, para_masks
+                        )
+                        loss_para = loss_focal_para + loss_dice_para + loss_mse_para
+
+                        loss = loss_lr + loss_hr + loss_line + loss_para * 0.5
+                        loss_dict = {
+                            "loss_lr_mask": loss_lr,
+                            "loss_hr_mask": loss_hr,
+                            "loss_line": loss_line,
+                            "loss_para": loss_para * 0.5
+                        }
                 else:
                     up_masks_logits, up_masks, iou_output, hr_masks_logits, hr_masks, hr_iou_output = model(
                         batched_input, multimask_output=False
