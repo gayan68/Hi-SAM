@@ -36,6 +36,13 @@ class Evaluator():
                 0: 'background',
                 1: 'text',
             }
+        elif "READ_2016" in dataset_name:
+            self.dataset_name = "READ_2016"
+            self.class_num = 2
+            self.semantic_classname = {
+                0: 'background',
+                1: 'text',
+            }
         else:
             raise NotImplementedError
 
