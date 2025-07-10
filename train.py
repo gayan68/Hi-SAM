@@ -68,6 +68,8 @@ def get_args_parser():
                         help='The number of image to token cross attention layers in model_aligner')
     parser.add_argument('--prompt_len', default=12, type=int, help='The number of prompt token')
 
+    parser.add_argument('--distributed', default=True, type=bool, help='Auto adjust with --device')
+    
     return parser.parse_args()
 
 
@@ -87,6 +89,7 @@ def main(train_datasets, valid_datasets, args):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
+    args.distributed = False if args.device == "cpu" else True
 
     ### --- Step 1: Train or Valid dataset ---
     if not args.eval:
@@ -98,6 +101,7 @@ def main(train_datasets, valid_datasets, args):
             my_transforms=train_transforms,
             batch_size=args.batch_size_train,
             training=True,
+            distributed = args.distributed,
             hier_det=args.hier_det,
             collate_fn=custom_collate_fn
         )
@@ -110,17 +114,20 @@ def main(train_datasets, valid_datasets, args):
         valid_im_gt_list,
         my_transforms=eval_transforms,
         batch_size=args.batch_size_valid,
-        training=False
+        training=False,
+        distributed = args.distributed
     )
     print(len(valid_dataloaders), " valid dataloaders created")
     
     ### --- Step 2: DistributedDataParallel---
     model = model_registry[args.model_type](args=args)
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and args.distributed:
         model.cuda()
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=args.find_unused_params)
-    model_without_ddp = model.module
- 
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=args.find_unused_params)
+        model_without_ddp = model.module
+    else:
+        model.to("cpu")
+        model_without_ddp = model  # no DDP wrapping on CPU       
     ### --- Step 3: Train or Evaluate ---
     if not args.eval:
         n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -172,7 +179,8 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
     for epoch in range(epoch_start, epoch_num):
         print("epoch: ", epoch, " lr: ", optimizer.param_groups[0]["lr"])
         metric_logger = misc.MetricLogger(delimiter="  ")
-        train_dataloaders.batch_sampler.sampler.set_epoch(epoch)
+        if args.distributed:
+            train_dataloaders.batch_sampler.sampler.set_epoch(epoch)
 
         for data in metric_logger.log_every(train_dataloaders, 50):
             inputs, labels = data['image'], data['label'].to(model.device)  # (bs,3,1024,1024), (bs,1,1024,1024)
@@ -432,6 +440,13 @@ def evaluate(args, model, valid_dataloaders, valid_datasets_names):
 if __name__ == "__main__":
 
     # train
+    read2016_train = {
+        "name": "READ_2016",
+        "im_dir": "../../DATASETS/READ_2016/Training/Images",
+        "gt_dir": "../../DATASETS/READ_2016/Training/labels",
+        "im_ext": ".JPG",
+        "gt_ext": ".png",
+    }
     totaltext_train = {
         "name": "TotalText-train",
         "im_dir": "./datasets/TotalText/Images/Train",
@@ -484,6 +499,7 @@ if __name__ == "__main__":
     }
 
     train_dataset_map = {
+        'read2016_train': read2016_train,
         'totaltext_train': totaltext_train,
         'hiertext_train': hiertext_train,
         'textseg_train': textseg_train,
@@ -494,6 +510,20 @@ if __name__ == "__main__":
     }
 
     # validation and test
+    read2016_val = {
+        "name": "READ_2016",
+        "im_dir": "../../DATASETS/READ_2016/Validation/Images",
+        "gt_dir": "../../DATASETS/READ_2016/Validation/labels",
+        "im_ext": ".JPG",
+        "gt_ext": ".png",
+    }
+    read2016_test = {
+        "name": "READ_2016",
+        "im_dir": "../../DATASETS/READ_2016/Test/Images",
+        "gt_dir": "../../DATASETS/READ_2016/Test/labels",
+        "im_ext": ".JPG",
+        "gt_ext": ".png",
+    }
     totaltext_test = {
         "name": "TotalText-test",
         "im_dir": "./datasets/TotalText/Images/Test",
@@ -530,6 +560,8 @@ if __name__ == "__main__":
         "gt_ext": ".png"
     }
     val_dataset_map = {
+        'read2016_val': read2016_val,
+        'read2016_test': read2016_test,
         'totaltext_test': totaltext_test,
         'hiertext_val': hiertext_val,
         'hiertext_test': hiertext_test,
@@ -546,4 +578,5 @@ if __name__ == "__main__":
     for ds_name in args.val_datasets:
         val_datasets.append(val_dataset_map[ds_name])
 
+    print(train_datasets)
     main(train_datasets, val_datasets, args)
