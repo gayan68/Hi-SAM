@@ -467,9 +467,9 @@ def sample_foreground_points(batch_labels, batch_para_masks, batch_line_masks,
         line_masks = line_masks[keep_index]
         if not only_line:
             # line2para_idx = batch_line2para_idx[b_i][keep_index]
-            line2para_idx = batch_line2para_idx[b_i][keep_index].to(dev)
+            line2para_idx = batch_line2para_idx[b_i][keep_index.cpu()]
             para_masks = batch_para_masks[b_i][line2para_idx].to(dev)
-            word_masks_per_line = batch_word_masks[b_i][keep_index].to(dev)
+            word_masks_per_line = batch_word_masks[b_i][keep_index.cpu()].to(dev)
         if keep_num == 0:
             sampled_xy = torch.tensor([[w / 2, h / 2]], dtype=torch.float32, device=dev)
             fg_points.append(sampled_xy)
