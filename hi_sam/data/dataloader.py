@@ -24,10 +24,11 @@ import time
 from tqdm import tqdm
 import cv2
 from PIL import Image
+import xml.etree.ElementTree as ET
 
 
 import torch
-from torch.utils.data import Dataset, DataLoader, ConcatDataset
+from torch.utils.data import Dataset, DataLoader, ConcatDataset, RandomSampler
 from torchvision import transforms, utils
 from torchvision.transforms.functional import normalize, InterpolationMode
 from torchvision.transforms.functional import resize, to_pil_image  # type: ignore
@@ -65,7 +66,6 @@ def get_im_gt_name_dict(datasets, flag='valid'):
                                 "gt_ext":datasets[i]["gt_ext"],
                                 "json_path": datasets[i].get('json_dir', None)
                                 })
-
     return name_im_gt_list
 
 def custom_collate_fn(batch_samples):
@@ -87,7 +87,7 @@ def custom_collate_fn(batch_samples):
     }
 
 def create_dataloaders(
-        name_im_gt_list, my_transforms=[], batch_size=1, training=False, hier_det=False, collate_fn=None
+        name_im_gt_list, my_transforms=[], batch_size=1, training=False, distributed=True, hier_det=False, collate_fn=None
 ):
     gos_dataloaders = []
     gos_datasets = []
@@ -111,9 +111,14 @@ def create_dataloaders(
                 hier_det=hier_det
             )
             gos_datasets.append(gos_dataset)
+        
 
         gos_dataset = ConcatDataset(gos_datasets)
-        sampler = DistributedSampler(gos_dataset)
+        if distributed:
+            sampler = DistributedSampler(gos_dataset)
+        else:
+            sampler = RandomSampler(gos_dataset)
+            
         batch_sampler_train = torch.utils.data.BatchSampler(sampler, batch_size, drop_last=True)
         dataloader = DataLoader(
             gos_dataset,
@@ -132,7 +137,12 @@ def create_dataloaders(
                 transform=transforms.Compose(my_transforms),
                 eval_ori_resolution=True
             )
-            sampler = DistributedSampler(gos_dataset, shuffle=False)
+
+            if distributed:
+                sampler = DistributedSampler(gos_dataset, shuffle=False)
+            else:
+                sampler = None
+
             dataloader = DataLoader(gos_dataset, batch_size, sampler=sampler, drop_last=False, num_workers=num_workers_)
             gos_dataloaders.append(dataloader)
             gos_datasets.append(gos_dataset)
@@ -481,7 +491,8 @@ class OnlineDataset(Dataset):
         self.dataset["ori_gt_path"] = deepcopy(gt_path_list)
         self.dataset_name = name_im_gt_list["dataset_name"]
         self.hier_det = hier_det
-        if hier_det:
+
+        if hier_det and (self.dataset_name != "READ_2016"):
             json_path = name_im_gt_list.get('json_path', None)
             assert json_path is not None, "Please check settings."
             load_start = time.time()
@@ -500,8 +511,19 @@ class OnlineDataset(Dataset):
         im_path = self.dataset["im_path"][idx]
         gt_path = self.dataset["gt_path"][idx]
         im_name = self.dataset["im_name"][idx]
+        
+
+        # print("##################################")
+        # print(f"idx: {idx}")
+        # im_id = im_name.split(".")[0]
+        
+        # print(im_id)
+        # print(im_path)
+        # print("##################################")
+
         im = io.imread(im_path)
         gt_ori = io.imread(gt_path)
+
         if 'TextSeg' in self.dataset_name:
             gt = (gt_ori == 100).astype(np.uint8) * 255
         elif 'COCO_TS' in self.dataset_name:
@@ -521,7 +543,7 @@ class OnlineDataset(Dataset):
             "shape": torch.tensor(im.shape[:2]),
         }
 
-        if self.hier_det:
+        if self.hier_det and (self.dataset_name != "READ_2016"):
             anns = copy.deepcopy(self.dataset["annotations"][im_name])
             w, h = anns['image_width'], anns['image_height']
             line_num = len(anns['line_masks'])
@@ -560,6 +582,42 @@ class OnlineDataset(Dataset):
                     sample['word_masks'] = masks
             else:
                 raise NotImplementedError
+            
+        if self.dataset_name == "READ_2016":
+            xlm_path = im_path.replace("Images", "gt").replace(".JPG", ".xml")
+
+            ns = {'pc': 'http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15'}
+            tree = ET.parse(xlm_path)
+            root_xml = tree.getroot()
+            w = int(root_xml.find(".//pc:Page", ns).attrib["imageWidth"])
+            h = int(root_xml.find(".//pc:Page", ns).attrib["imageHeight"])
+
+            lines_points, paras_points, line2para_index = [], [], []
+            i = 0
+            for region in root_xml.findall(".//pc:TextRegion", ns):
+                coords_str = region.find("pc:Coords", ns).attrib["points"]
+                points = [tuple(map(int, p.split(','))) for p in coords_str.split()]
+                paras_points.append(points)
+                
+                for line in region.findall(".//pc:TextLine", ns):
+                    coords_str = line.find("pc:Coords", ns).attrib["points"]
+                    points = [tuple(map(int, p.split(','))) for p in coords_str.split()]
+                    lines_points.append(points)
+                    line2para_index.append(i)
+                i+=1
+            
+            sample['line2paragraph_index'] = torch.tensor(line2para_index)
+            
+            masks = [get_one_mask(line_points, w, h) for line_points in lines_points]
+            masks = np.array(masks).transpose((1, 2, 0))
+            sample['line_masks'] = masks
+            sample['word_masks'] = masks
+
+            masks = [get_one_mask(para_points, w, h) for para_points in paras_points]
+            masks = np.array(masks).transpose((1, 2, 0))
+            sample['paragraph_masks'] = masks
+           
+
         
         if self.transform:
             sample = self.transform(sample)
