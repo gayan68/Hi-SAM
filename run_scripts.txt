@@ -46,3 +46,21 @@ python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_h.pth --model-typ
 python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/AGS_CCA_CED_0251_0264.jpg --output out/AGS_CCA_CED_0251_0264_line2.png --dataset ctw1500 --seed 20
 
 python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_h.pth --model-type vit_h --input demo/AGS_CCA_CED_0251_0264.jpg --output out/AGS_CCA_CED_0251_0264_bin.png --patch_mode 
+
+
+########## READ_2016 ################
+python demo_text_detection.py --checkpoint pretrained_checkpoint/word_detection_totaltext.pth --model-type vit_h --input demo/READ_2016/Seite0001.JPG --output out/READ_2016/Seite0001.JPG --dataset totaltext
+
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/READ_2016/Seite0001.JPG --output out/READ_2016/Seite0001.JPG --dataset ctw1500
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/READ_2016/Seite0002.JPG --output out/READ_2016/Seite0002.JPG --dataset ctw1500
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/READ_2016/Seite0003.JPG --output out/READ_2016/Seite0003.JPG --dataset ctw1500
+python demo_text_detection.py --checkpoint pretrained_checkpoint/line_detection_ctw1500.pth --model-type vit_h --input demo/READ_2016/Seite0004.JPG --output out/READ_2016/Seite0004.JPG --dataset ctw1500
+
+
+
+
+../../DATASETS/READ_2016/Validation/Images/Seite0355.JPG
+
+python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_h.pth --model-type vit_h --input ../../DATASETS/READ_2016/Training/Images --output ../../DATASETS/READ_2016/Training/labels --patch_mode 
+python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_h.pth --model-type vit_h --input ../../DATASETS/READ_2016/Validation/Images --output ../../DATASETS/READ_2016/Validation/labels --patch_mode 
+python demo_hisam.py --checkpoint pretrained_checkpoint/hi_sam_h.pth --model-type vit_h --input ../../DATASETS/READ_2016/Test/Images --output ../../DATASETS/READ_2016/Test/labels --patch_mode 
