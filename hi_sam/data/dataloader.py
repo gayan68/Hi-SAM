@@ -188,7 +188,9 @@ class ToTensor(object):
 
             if sample.get('paragraph_masks', None) is not None:
                 sample['paragraph_masks'] = torch.from_numpy(sample['paragraph_masks']).permute(2, 0, 1)
-                sample['word_masks'] = torch.from_numpy(sample['word_masks']).permute(2, 0, 1)
+
+                if sample['word_masks']  is not None:
+                    sample['word_masks'] = torch.from_numpy(sample['word_masks']).permute(2, 0, 1)
         return sample
 
 
