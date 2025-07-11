@@ -445,17 +445,10 @@ def sample_foreground_points(batch_labels, batch_para_masks, batch_line_masks,
     if (len(batch_line_masks) > 0 and len(batch_word_masks) == 0) or (len(batch_line_masks) > 0 and batch_word_masks is None ):
         only_line = True
 
-    print("#####################################")
-    print(batch_word_masks)
-    if len(batch_line_masks) > 0:
-        print("len True")    
-    if batch_word_masks[0] is None:
-        print("Bbatch_word_masks is None True")    
     if (len(batch_line_masks) > 0  and len(batch_word_masks) == 1):
-        print("Case 1")
         if batch_word_masks[0] is None:
-            print("Both True")
-    GAYAN
+            only_line = True
+
     dev = batch_labels.device
     h, w = batch_labels.shape[-2:]
     y = torch.arange(0, h, dtype=torch.float)
