@@ -442,7 +442,7 @@ def sample_foreground_points(batch_labels, batch_para_masks, batch_line_masks,
                              batch_word_masks, batch_line2para_idx, k=20, np_per_line=2):
     fg_points, select_line_masks, select_para_masks, select_word_masks = [], [], [], []
     only_line = False
-    if len(batch_line_masks) > 0 and len(batch_word_masks) == 0:
+    if (len(batch_line_masks) > 0 and len(batch_word_masks) == 0) or (len(batch_line_masks) > 0 and batch_word_masks is None ):
         only_line = True
     dev = batch_labels.device
     h, w = batch_labels.shape[-2:]
