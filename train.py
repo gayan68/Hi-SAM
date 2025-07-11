@@ -20,6 +20,7 @@ from hi_sam.modeling.loss import loss_masks, loss_hi_masks, loss_iou_mse, loss_h
 from hi_sam.data.dataloader import get_im_gt_name_dict, create_dataloaders, train_transforms, eval_transforms, custom_collate_fn
 from hi_sam.evaluation import Evaluator
 import utils.misc as misc
+import wandb
 import warnings
 warnings.filterwarnings("ignore")
 
