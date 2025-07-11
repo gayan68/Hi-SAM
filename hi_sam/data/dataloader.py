@@ -256,14 +256,15 @@ class LargeScaleJitter(object):
                 sample['paragraph_masks'] = masks
 
                 masks = sample['word_masks']
-                masks = cv2.resize(masks, dsize=scaled_size[::-1], interpolation=cv2.INTER_LINEAR)
-                if len(masks.shape) < 3:
-                    masks = masks[:, :, np.newaxis]
-                masks = masks[crop_y1:crop_y2, crop_x1:crop_x2, :]
-                masks = cv2.copyMakeBorder(masks, 0, padding_h, 0, padding_w, cv2.BORDER_CONSTANT, value=0)
-                if len(masks.shape) < 3:
-                    masks = masks[:, :, np.newaxis]
-                sample['word_masks'] = masks
+                if masks is not None:
+                    masks = cv2.resize(masks, dsize=scaled_size[::-1], interpolation=cv2.INTER_LINEAR)
+                    if len(masks.shape) < 3:
+                        masks = masks[:, :, np.newaxis]
+                    masks = masks[crop_y1:crop_y2, crop_x1:crop_x2, :]
+                    masks = cv2.copyMakeBorder(masks, 0, padding_h, 0, padding_w, cv2.BORDER_CONSTANT, value=0)
+                    if len(masks.shape) < 3:
+                        masks = masks[:, :, np.newaxis]
+                    sample['word_masks'] = masks
 
         return sample
 
