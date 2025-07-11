@@ -446,6 +446,7 @@ def sample_foreground_points(batch_labels, batch_para_masks, batch_line_masks,
         only_line = True
 
     print("#####################################")
+    print(batch_word_masks)
     if len(batch_line_masks) > 0:
         print("len True")    
     if batch_word_masks is None:
