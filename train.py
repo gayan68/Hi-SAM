@@ -63,6 +63,9 @@ def get_args_parser():
 
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--skip_words', default=False, type=bool, help='Set false to ignore Word level')
+
+    parser.add_argument('--wandb', default=False, type=bool)
+
     # self-prompting
     parser.add_argument('--attn_layers', default=1, type=int,
                         help='The number of image to token cross attention layers in model_aligner')
@@ -90,6 +93,18 @@ def main(train_datasets, valid_datasets, args):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     args.distributed = False if args.device == "cpu" else True
+
+    ### --- Initialize Wandb ---
+    print(f"self.args.wandb: {self.args.wandb}")
+    if self.args.wandb :
+        wandb.init(
+            project="Hi-SAM",
+            config={
+            "architecture": "Hi-SAM",
+            }
+        )
+        print("run name WANDB : " + str(wandb.run.name))   
+
 
     ### --- Step 1: Train or Valid dataset ---
     if not args.eval:
@@ -182,9 +197,19 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
         if args.distributed:
             train_dataloaders.batch_sampler.sampler.set_epoch(epoch)
 
+        num_batches = 0
+        loss_lr_total = 0
+        loss_hr_total = 0
+        loss_word_total = 0
+        loss_word_384_total = 0
+        loss_line_total = 0
+        loss_para_total = 0
+        loss_total = 0
+
         for data in metric_logger.log_every(train_dataloaders, 50):
             inputs, labels = data['image'], data['label'].to(model.device)  # (bs,3,1024,1024), (bs,1,1024,1024)
             batched_input = []
+            num_batches += 1
             if args.hier_det:
                 para_masks, line_masks, word_masks = data['paragraph_masks'], data['line_masks'], data['word_masks']
                 line2para_idx = data['line2paragraph_index']
@@ -246,6 +271,13 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
                             "loss_line": loss_line,
                             "loss_para": loss_para * 0.5
                         }
+                        loss_lr_total += loss_lr
+                        loss_hr_total += loss_hr
+                        loss_word_total += loss_word
+                        loss_word_384_total += loss_word_384
+                        loss_line_total += loss_line
+                        loss_para_total += loss_para * 0.5
+                        loss_total += loss
                     else:
                         loss_focal_line, loss_dice_line = loss_hi_masks(
                             hi_masks_logits[:, 1:2, :, :], line_masks, len(hi_masks_logits)
@@ -270,6 +302,11 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
                             "loss_line": loss_line,
                             "loss_para": loss_para * 0.5
                         }
+                        loss_lr_total += loss_lr
+                        loss_hr_total += loss_hr
+                        loss_line_total += loss_line
+                        loss_para_total += loss_para * 0.5
+                        loss_total += loss
                 else:
                     up_masks_logits, up_masks, iou_output, hr_masks_logits, hr_masks, hr_iou_output = model(
                         batched_input, multimask_output=False
@@ -287,6 +324,7 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
                         "loss_dice_hr": loss_dice_hr,
                         "loss_focal_hr": loss_focal_hr * 20,
                     }
+                    loss_total += loss
                 # reduce losses over all GPUs for logging purposes
                 loss_dict_reduced = misc.reduce_dict(loss_dict)
                 losses_reduced_scaled = sum(loss_dict_reduced.values())
@@ -301,6 +339,28 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
 
         metric_logger.synchronize_between_processes()
         train_stats = {k: meter.global_avg for k, meter in metric_logger.meters.items() if meter.count > 0}
+
+        loss_lr_total = loss_lr_total/num_batches
+        loss_hr_total = loss_hr_total/num_batches
+        loss_word_total = loss_word_total/num_batches
+        loss_word_384_total = loss_word_384_total/num_batches
+        loss_line_total = loss_line_total/num_batches
+        loss_para_total = loss_para_total/num_batches
+        loss_total = loss_total/num_batches
+
+        #Upload logs to Wandb
+        if self.args.wandb:
+            if self.step % num_batches == 0:
+                wandb.log({
+                    "loss_lr": loss_lr_total, 
+                    "loss_hr": loss_hr_total, 
+                    "loss_word": loss_word_total, 
+                    "loss_word_384": loss_word_384_total, 
+                    "loss_line": loss_line_total,
+                    "loss_para": loss_para_total,
+                    "total_loss": loss_total
+                    })
+                    
 
         if (epoch - epoch_start) % args.valid_period == 0 or (epoch + 1) == epoch_num:
             if args.hier_det:
