@@ -439,15 +439,15 @@ def gather(data, dst=0, group=None):
 
 
 def sample_foreground_points(batch_labels, batch_para_masks, batch_line_masks,
-                             batch_word_masks, batch_line2para_idx, k=20, np_per_line=2):
+                             batch_word_masks, batch_line2para_idx,skip_words, k=20, np_per_line=2):
     fg_points, select_line_masks, select_para_masks, select_word_masks = [], [], [], []
     only_line = False
     if (len(batch_line_masks) > 0 and len(batch_word_masks) == 0) or (len(batch_line_masks) > 0 and batch_word_masks is None ):
         only_line = True
 
-    if (len(batch_line_masks) > 0  and len(batch_word_masks) == 1):
-        if batch_word_masks[0] is None:
-            only_line = True
+    # if (len(batch_line_masks) > 0  and len(batch_word_masks) == 1):
+    #     if batch_word_masks[0] is None:
+    #         only_line = True
 
     dev = batch_labels.device
     h, w = batch_labels.shape[-2:]
@@ -474,7 +474,8 @@ def sample_foreground_points(batch_labels, batch_para_masks, batch_line_masks,
             # line2para_idx = batch_line2para_idx[b_i][keep_index]
             line2para_idx = batch_line2para_idx[b_i][keep_index.cpu()]
             para_masks = batch_para_masks[b_i][line2para_idx].to(dev)
-            word_masks_per_line = batch_word_masks[b_i][keep_index.cpu()].to(dev)
+            if not skip_words:
+                word_masks_per_line = batch_word_masks[b_i][keep_index.cpu()].to(dev)
         if keep_num == 0:
             sampled_xy = torch.tensor([[w / 2, h / 2]], dtype=torch.float32, device=dev)
             fg_points.append(sampled_xy)
@@ -483,8 +484,9 @@ def sample_foreground_points(batch_labels, batch_para_masks, batch_line_masks,
             if not only_line:
                 para_masks = torch.zeros((1, h, w)).to(para_masks)
                 select_para_masks.append(para_masks.unsqueeze(1))
-                word_masks_per_line = torch.zeros((1, h, w)).to(word_masks_per_line)
-                select_word_masks.append(word_masks_per_line.unsqueeze(1))
+                if not skip_words:
+                    word_masks_per_line = torch.zeros((1, h, w)).to(word_masks_per_line)
+                    select_word_masks.append(word_masks_per_line.unsqueeze(1))
             continue
         x_idx = torch.masked_select(x, intersection)
         y_idx = torch.masked_select(y, intersection)
@@ -495,7 +497,8 @@ def sample_foreground_points(batch_labels, batch_para_masks, batch_line_masks,
         line_masks = torch.repeat_interleave(line_masks, np_per_line, dim=0)
         if not only_line:
             para_masks = torch.repeat_interleave(para_masks, np_per_line, dim=0)
-            word_masks_per_line = torch.repeat_interleave(word_masks_per_line, np_per_line, dim=0)
+            if not skip_words:
+                word_masks_per_line = torch.repeat_interleave(word_masks_per_line, np_per_line, dim=0)
         pos_idx = np.ravel([
             random.sample(range(start_idx[p_i].item(), intersec_cumsum[p_i].item()), np_per_line)
             for p_i in range(keep_num)
@@ -515,22 +518,29 @@ def sample_foreground_points(batch_labels, batch_para_masks, batch_line_masks,
         line_masks = line_masks[perm_index]
         if not only_line:
             para_masks = para_masks[perm_index]
-            word_masks_per_line = word_masks_per_line[perm_index]
+            if not skip_words:
+                word_masks_per_line = word_masks_per_line[perm_index]
 
         fg_points.append(sampled_xy)
         select_line_masks.append(line_masks.unsqueeze(1))
         del line_masks
         if not only_line:
             select_para_masks.append(para_masks.unsqueeze(1))  # (k, 1, h, w)
-            select_word_masks.append(word_masks_per_line.unsqueeze(1))
+            if not skip_words:
+                select_word_masks.append(word_masks_per_line.unsqueeze(1))
             del para_masks
-            del word_masks_per_line
+            if not skip_words:
+                del word_masks_per_line
     select_line_masks = torch.cat(select_line_masks, dim=0)
     if not only_line:
         select_para_masks = torch.cat(select_para_masks, dim=0)
-        select_word_masks = torch.cat(select_word_masks, dim=0)
+        if not skip_words:
+            select_word_masks = torch.cat(select_word_masks, dim=0)
 
     if not only_line:
-        return fg_points, select_para_masks, select_line_masks, select_word_masks
+        if not skip_words:
+            return fg_points, select_para_masks, select_line_masks, select_word_masks
+        else:
+            return fg_points, select_para_masks, select_line_masks, None
     else:
         return fg_points, None, select_line_masks, None

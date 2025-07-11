@@ -62,13 +62,13 @@ def get_args_parser():
     parser.add_argument('--find_unused_params', action='store_true')
 
     parser.add_argument('--eval', action='store_true')
-
+    parser.add_argument('--skip_words', default=False, type=bool, help='Set false to ignore Word level')
     # self-prompting
     parser.add_argument('--attn_layers', default=1, type=int,
                         help='The number of image to token cross attention layers in model_aligner')
     parser.add_argument('--prompt_len', default=12, type=int, help='The number of prompt token')
 
-    parser.add_argument('--distributed', default=True, type=bool, help='Auto adjust with --device')
+    parser.add_argument('--distributed', default=True, type=bool)
     
     return parser.parse_args()
 
@@ -188,7 +188,7 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
             if args.hier_det:
                 para_masks, line_masks, word_masks = data['paragraph_masks'], data['line_masks'], data['word_masks']
                 line2para_idx = data['line2paragraph_index']
-                fg_points, para_masks, line_masks, word_masks = misc.sample_foreground_points(labels, para_masks, line_masks, word_masks, line2para_idx)
+                fg_points, para_masks, line_masks, word_masks = misc.sample_foreground_points(labels, para_masks, line_masks, word_masks, line2para_idx, args.skip_words)
             for b_i in range(len(inputs)):
                 dict_input = dict()
                 dict_input['image'] = inputs[b_i].to(model.device).contiguous()
@@ -254,7 +254,11 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
                             hi_iou_output[:, 1:2], hi_masks_logits[:, 1:2, :, :], model.module.mask_threshold, line_masks
                         )
                         loss_line = loss_focal_line + loss_dice_line + loss_mse_line
-
+                        print("#####################################")
+                        print(para_masks)
+                        print("#####################################")
+                        print(hi_masks_logits)
+                        print("#####################################")
                         loss_focal_para, loss_dice_para = loss_hi_masks(
                             hi_masks_logits[:, 2:3, :, :], para_masks, len(hi_masks_logits)
                         )
