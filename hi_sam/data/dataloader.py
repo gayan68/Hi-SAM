@@ -438,7 +438,8 @@ class RandomRotate(object):
                 sample['paragraph_masks'] = masks
 
                 masks = sample['word_masks']
-                masks = self.apply(masks, rm_image, bound_w, bound_h, cv2.INTER_NEAREST, 0)
+                if masks is not None:
+                    masks = self.apply(masks, rm_image, bound_w, bound_h, cv2.INTER_NEAREST, 0)
                 if len(masks.shape) < 3:
                     masks = masks[:, :, np.newaxis]
                 sample['word_masks'] = masks
