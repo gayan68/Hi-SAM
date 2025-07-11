@@ -254,11 +254,7 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
                             hi_iou_output[:, 1:2], hi_masks_logits[:, 1:2, :, :], model.module.mask_threshold, line_masks
                         )
                         loss_line = loss_focal_line + loss_dice_line + loss_mse_line
-                        print("#####################################")
-                        print(para_masks)
-                        print("#####################################")
-                        print(hi_masks_logits)
-                        print("#####################################")
+      
                         loss_focal_para, loss_dice_para = loss_hi_masks(
                             hi_masks_logits[:, 2:3, :, :], para_masks, len(hi_masks_logits)
                         )
