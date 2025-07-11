@@ -449,10 +449,11 @@ def sample_foreground_points(batch_labels, batch_para_masks, batch_line_masks,
     print(batch_word_masks)
     if len(batch_line_masks) > 0:
         print("len True")    
-    if batch_word_masks is None:
+    if batch_word_masks[0] is None:
         print("Bbatch_word_masks is None True")    
-    if (len(batch_line_masks) > 0 and batch_word_masks is None ):
-        print("Both True")
+    if (len(batch_line_masks) > 0  and len(batch_word_masks) == 0):
+        if batch_word_masks[0] is None:
+            print("Both True")
     GAYAN
     dev = batch_labels.device
     h, w = batch_labels.shape[-2:]
