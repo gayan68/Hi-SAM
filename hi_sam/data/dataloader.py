@@ -611,7 +611,7 @@ class OnlineDataset(Dataset):
             masks = [get_one_mask(line_points, w, h) for line_points in lines_points]
             masks = np.array(masks).transpose((1, 2, 0))
             sample['line_masks'] = masks
-            sample['word_masks'] = masks
+            sample['word_masks'] = None
 
             masks = [get_one_mask(para_points, w, h) for para_points in paras_points]
             masks = np.array(masks).transpose((1, 2, 0))
