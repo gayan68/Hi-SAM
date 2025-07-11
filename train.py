@@ -95,8 +95,8 @@ def main(train_datasets, valid_datasets, args):
     args.distributed = False if args.device == "cpu" else True
 
     ### --- Initialize Wandb ---
-    print(f"self.args.wandb: {self.args.wandb}")
-    if self.args.wandb :
+    print(f"self.args.wandb: {args.wandb}")
+    if args.wandb :
         wandb.init(
             project="Hi-SAM",
             config={
@@ -349,17 +349,16 @@ def train(args, model, optimizer, train_dataloaders, train_datasets_names, lr_sc
         loss_total = loss_total/num_batches
 
         #Upload logs to Wandb
-        if self.args.wandb:
-            if self.step % num_batches == 0:
-                wandb.log({
-                    "loss_lr": loss_lr_total, 
-                    "loss_hr": loss_hr_total, 
-                    "loss_word": loss_word_total, 
-                    "loss_word_384": loss_word_384_total, 
-                    "loss_line": loss_line_total,
-                    "loss_para": loss_para_total,
-                    "total_loss": loss_total
-                    })
+        if args.wandb:
+            wandb.log({
+                "loss_lr": loss_lr_total, 
+                "loss_hr": loss_hr_total, 
+                "loss_word": loss_word_total, 
+                "loss_word_384": loss_word_384_total, 
+                "loss_line": loss_line_total,
+                "loss_para": loss_para_total,
+                "total_loss": loss_total
+                })
                     
 
         if (epoch - epoch_start) % args.valid_period == 0 or (epoch + 1) == epoch_num:
